@@ -1,0 +1,75 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider          = "mysql"
+  url               = env("DATABASE_URL")
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
+}
+
+model Author {
+  id         String  @id @default(dbgenerated("UUID_V7()")) @db.VarChar(36)
+  name       String  @db.VarChar(128)
+  is_deleted Boolean @default(false)
+
+  books Book[]
+
+  @@index([name])
+}
+
+model Publisher {
+  id         String  @id @default(dbgenerated("UUID_V7()")) @db.VarChar(36)
+  name       String  @db.VarChar(128)
+  is_deleted Boolean @default(false)
+
+  books Book[]
+
+  @@index([name])
+}
+
+model User {
+  id         String   @id @default(dbgenerated("UUID_V7()")) @db.VarChar(36)
+  email      String   @unique @db.VarChar(254)
+  name       String   @db.VarChar(512)
+  password   String   @db.VarChar(256)
+  is_admin   Boolean  @default(false)
+  created_at DateTime @default(dbgenerated("NOW()"))
+  updated_at DateTime
+  is_deleted Boolean  @default(false)
+
+  rentals RentalLog[]
+}
+
+model Book {
+  isbn              BigInt  @id @db.UnsignedBigInt
+  title             String  @db.VarChar(512)
+  author_id         String  @db.VarChar(36)
+  publisher_id      String  @db.VarChar(36)
+  publication_year  Int     @db.UnsignedInt
+  publication_month Int     @db.UnsignedTinyInt
+  is_deleted        Boolean @default(false)
+
+  author    Author      @relation(fields: [author_id], references: [id])
+  publisher Publisher   @relation(fields: [publisher_id], references: [id])
+  rentals   RentalLog[]
+}
+
+model RentalLog {
+  id            String    @id @default(dbgenerated("UUID_V7()")) @db.VarChar(36)
+  book_isbn     BigInt    @db.UnsignedBigInt
+  user_id       String    @db.VarChar(36)
+  checkout_date DateTime
+  due_date      DateTime
+  returned_date DateTime?
+
+  book Book @relation(fields: [book_isbn], references: [isbn])
+  user User @relation(fields: [user_id], references: [id])
+}
