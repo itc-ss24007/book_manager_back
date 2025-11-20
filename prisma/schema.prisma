@@ -16,7 +16,7 @@ datasource db {
 }
 
 model Author {
-  id         String  @id @default(dbgenerated("UUID_V7()")) @db.VarChar(36)
+  id         String  @id @default(uuid(7)) @db.VarChar(36)
   name       String  @db.VarChar(128)
   is_deleted Boolean @default(false)
 
@@ -26,7 +26,7 @@ model Author {
 }
 
 model Publisher {
-  id         String  @id @default(dbgenerated("UUID_V7()")) @db.VarChar(36)
+  id         String  @id @default(uuid(7)) @db.VarChar(36)
   name       String  @db.VarChar(128)
   is_deleted Boolean @default(false)
 
@@ -36,13 +36,13 @@ model Publisher {
 }
 
 model User {
-  id         String   @id @default(dbgenerated("UUID_V7()")) @db.VarChar(36)
+  id         String   @id @default(uuid(7)) @db.VarChar(36)
   email      String   @unique @db.VarChar(254)
   name       String   @db.VarChar(512)
   password   String   @db.VarChar(256)
   is_admin   Boolean  @default(false)
-  created_at DateTime @default(dbgenerated("NOW()"))
-  updated_at DateTime
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
   is_deleted Boolean  @default(false)
 
   rentals RentalLog[]
@@ -63,7 +63,7 @@ model Book {
 }
 
 model RentalLog {
-  id            String    @id @default(dbgenerated("UUID_V7()")) @db.VarChar(36)
+  id            String    @id @default(uuid(7)) @db.VarChar(36)
   book_isbn     BigInt    @db.UnsignedBigInt
   user_id       String    @db.VarChar(36)
   checkout_date DateTime
