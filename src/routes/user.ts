@@ -2,6 +2,8 @@ import { Router, Request, Response } from "express";
 import { check, validationResult } from "express-validator";
 import argon2 from "argon2";
 import prisma from "../libs/db.js"; // ここは自作の Prisma 接続
+import passport from "passport";
+
 
 interface RegisterBody {
   email: string;
@@ -16,6 +18,24 @@ router.get('/login',async(req,res)=>{
     error: ('error')
   })
 })
+
+router.post("/login", (req: Request, res: Response, next) => {
+  passport.authenticate("local",
+    (err: Error | null,
+     user: Express.User | false,
+     info?: { message?: string }) => {
+    if (err) return next(err);
+
+    if (!user) {
+      return res.status(401).json({ message: info?.message || "認証失敗" });
+    }
+
+    req.login(user, (err) => {
+      if (err) return next(err);
+      return res.status(200).json({ message: "ok" });
+    });
+  })(req, res, next);
+});
 
 router.get('/register',(req,res)=>{
   res.render('user/register')
