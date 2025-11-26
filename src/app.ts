@@ -2,14 +2,22 @@ import createError from 'http-errors'
 import express, {NextFunction, Request, Response} from 'express'
 import path from 'node:path'
 import cookieParser from 'cookie-parser'
+import {RedisStore} from 'connect-redis'
+import {createClient} from 'redis'
 import logger from 'morgan'
 import session from 'express-session'
 import passport from './libs/auth.js'
 
 import indexRouter from './routes/index.js'
 import userRouter from './routes/user.js'
+import bookRouter from './routes/book.js'
 
 const app = express()
+
+const redisClient = await createClient({url: process.env.REDIS_URL})
+  .on('error', (err: Error) => console.error(err))
+  .connect()
+const redisStore = new RedisStore({client: redisClient})
 
 // view engine setup
 app.set('views', path.join(import.meta.dirname, 'views'))
@@ -26,14 +34,16 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   cookie: {
-    maxAge: 1000 * 60 * 60 * 24,
+    maxAge: 1000 * 60 * 60,
     httpOnly: true,
   },
+  store: redisStore
 }))
 app.use(passport.authenticate('session'))
 
 app.use('/', indexRouter)
 app.use('/user', userRouter)
+app.use('/book', bookRouter)
 
 // catch 404 and forward to error handler
 app.use(async (req: Request, res: Response, next: NextFunction) => {

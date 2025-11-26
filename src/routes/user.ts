@@ -13,13 +13,13 @@ interface RegisterBody {
 
 const router = Router();
 
-router.get('/login',async(req,res)=>{
-  res.render('user/login', {
-    error: ('error')
-  })
-})
+// router.get('/login',async(req,res)=>{
+//   res.render('user/login', {
+//     error: ('error')
+//   })
+// })
 
-router.post("/login", (req: Request, res: Response, next) => {
+router.post("/login", (req, res, next) => {
   passport.authenticate("local",
     (err: Error | null,
      user: Express.User | false,
@@ -30,16 +30,20 @@ router.post("/login", (req: Request, res: Response, next) => {
       return res.status(401).json({ message: info?.message || "認証失敗" });
     }
 
-    req.login(user, (err) => {
-      if (err) return next(err);
-      return res.status(200).json({ message: "ok" });
-    });
-  })(req, res, next);
+      req.login(user, (err) => {
+        if (err) return next(err);
+
+        // ★ ここを追加 — セッションを確実に保存してからレスポンス
+        req.session.save(() => {
+          return res.status(200).json({ message: "ok" });
+        });
+      });
+    })(req, res, next);
 });
 
-router.get('/register',(req,res)=>{
-  res.render('user/register')
-})
+// router.get('/register',(req,res)=>{
+//   res.render('user/register')
+// })
 
 router.post(
   "/register",
@@ -82,5 +86,53 @@ router.post(
     return res.status(200).send();
   }
 );
+
+router.use(async (req, res, next) => {
+  // ログイン中かどうかをチェックするミドルウェア
+  if (!req.isAuthenticated()) {
+    // 未ログインなので、ログインページにリダイレクト
+    res.status(401).json({ message: "ログインが必要です" });
+    return
+  }
+  next()
+})
+
+router.get("/history", async (req, res) => {
+  const user = req.user as { id: string };
+  try {
+    const rentals = await prisma.rentalLog.findMany({
+      where: {
+        user_id: user.id, // ログインユーザー
+      },
+      include: {
+        book: {
+          select: {
+            isbn: true,
+            title: true,
+          },
+        },
+      },
+      orderBy: {
+        checkout_date: "desc", // 新しい貸出順
+      },
+    });
+
+    return res.status(200).json({
+      history: rentals.map((r) => ({
+        id: r.id,
+        book: {
+          isbn: Number(r.book.isbn),
+          name: r.book.title,
+        },
+        checkout_date: r.checkout_date,
+        due_date: r.due_date,
+        returned_date: r.returned_date,
+      })),
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Server Error" });
+  }
+})
 
 export default router;

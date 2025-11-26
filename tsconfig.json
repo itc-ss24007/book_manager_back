@@ -5,7 +5,11 @@
     "forceConsistentCasingInFileNames": true,
     "strict": true,
     "allowImportingTsExtensions": false,
-    "outDir": "./dist"
+    "outDir": "./dist",
+    "typeRoots": [
+      "./node_modules/@types",
+      "./@types"
+    ]
   },
   "include": [
     "./src/**/*.ts",
