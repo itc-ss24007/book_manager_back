@@ -1,6 +1,6 @@
 import {Router} from "express";
 import prisma from "../libs/db.js"
-import { body, validationResult } from "express-validator";
+import { check, validationResult } from "express-validator";
 
 
 const router=Router();
@@ -101,7 +101,7 @@ router.get("/detail/:isbn", async (req, res) => {
 router.post(
   "/rental",
   // バリデーション
-  body("book_id")
+  check("book_id")
     .notEmpty().withMessage("書籍IDは必須です")
     .isNumeric().withMessage("書籍IDは数字である必要があります"),
   async (req, res) => {
@@ -161,5 +161,53 @@ router.post(
     }
   }
 );
+
+// 書籍返却
+router.put("/return",
+  check("id").notEmpty(),
+  async (req, res) => {
+
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ message: "貸出IDは必須です" });
+    }
+
+    const { id } = req.body;
+    const user = req.user as { id: string };
+
+    try {
+      // 貸出記録が存在するか確認
+      const rental = await prisma.rentalLog.findUnique({
+        where: { id }
+      });
+
+      if (!rental) {
+        return res.status(404).json({ message: "存在しない貸出記録です" });
+      }
+
+      // 自分の貸出記録か確認
+      if (rental.user_id !== user.id) {
+        return res.status(403).json({ message: "他のユーザの貸出書籍です" });
+      }
+
+      // 返却日に現在日時をセット
+      const updatedRental = await prisma.rentalLog.update({
+        where: { id },
+        data: {
+          returned_date: new Date(),
+        }
+      });
+
+      return res.status(200).json({
+        id: updatedRental.id,
+        returned_date: updatedRental.returned_date,
+      });
+
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({ message: "返却に失敗しました" });
+    }
+  });
+
 
 export default router;
