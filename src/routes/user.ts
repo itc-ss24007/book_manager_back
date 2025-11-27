@@ -150,7 +150,7 @@ router.put("/change",
 
   try {
     const user = req.user as { id: string ,name: string };
-    console.log(user);
+
     const updatedUser = await prisma.user.update({
       where: { id: user.id },
       data: { name },
