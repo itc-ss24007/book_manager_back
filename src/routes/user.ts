@@ -135,4 +135,35 @@ router.get("/history", async (req, res) => {
   }
 })
 
+// ユーザー名変更
+router.put("/change",
+  check("name").notEmpty(),
+  async (req, res) => {
+
+  const errors = validationResult(req);
+  const { name } = req.body;
+
+  // バリデーション
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ reason: "名前は必須です" });
+  }
+
+  try {
+    const user = req.user as { id: string ,name: string };
+    console.log(user);
+    const updatedUser = await prisma.user.update({
+      where: { id: user.id },
+      data: { name },
+    });
+
+    // セッション内ユーザー情報更新（重要!!）
+    user.name = updatedUser.name;
+
+    return res.status(200).json({ message: "更新しました" });
+  } catch (error) {
+    console.error(error);
+    return res.status(400).json({ reason: "更新に失敗しました" });
+  }
+});
+
 export default router;
